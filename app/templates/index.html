@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tumor Detection Model</title>
+    <!-- Modern font from Google -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Tumor Detection System</h1>
+            <p>Upload an MRI scan to detect possible tumors. For demonstration purposes only, not medical advice.</p>
+        </header>
+
+        <!-- SECTION 1: Tumor Detection -->
+        <section id="detection-section" class="card">
+            <h2>Tumor Detection</h2>
+            
+            <form id="upload-form">
+                <div class="file-upload-wrapper">
+                    <div class="file-upload-box" id="drop-zone">
+                        <svg class="upload-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                        </svg>
+                        <p class="upload-text">Drag and drop an image, or click to browse</p>
+                        <input type="file" id="image-upload" name="file" accept="image/png, image/jpeg, image/jpg" required>
+                    </div>
+                    <div id="file-error" class="error-text"></div>
+                    <div id="file-name" class="success-text hidden"></div>
+                </div>
+                <button type="submit" id="submit-btn" disabled>Run Analysis</button>
+            </form>
+
+            <div id="loading-spinner" class="spinner-container hidden">
+                <div class="spinner"></div>
+                <p>Running model inference...</p>
+            </div>
+
+            <div id="result-container" class="hidden">
+                <div class="prediction-header">
+                    <h3>Prediction: <span id="predicted-label"></span></h3>
+                </div>
+                
+                <div class="confidence-container">
+                    <div class="confidence-header">
+                        <span>Confidence</span>
+                        <span id="confidence-text"></span>
+                    </div>
+                    <div class="progress-bar-bg main-bar">
+                        <div id="confidence-bar" class="progress-bar-fill"></div>
+                    </div>
+                </div>
+
+                <div class="all-scores-container">
+                    <h4>All Class Scores</h4>
+                    <div id="scores-list" class="scores-list"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 2: Model Performance Metrics -->
+        <section id="metrics-section" class="card">
+            <h2>Model Performance Metrics</h2>
+            <p class="metrics-subtitle">Static evaluation metrics computed during model training.</p>
+            
+            <div class="metrics-content">
+                <div class="chart-container">
+                    <canvas id="metricsChart"></canvas>
+                </div>
+                
+                <div class="confusion-matrix-container">
+                    <h3>Confusion Matrix</h3>
+                    <table class="confusion-matrix">
+                        <tr>
+                            <th></th>
+                            <th>Predicted Positive</th>
+                            <th>Predicted Negative</th>
+                        </tr>
+                        <tr>
+                            <th>Actual Positive</th>
+                            <td id="cm-tp" class="cm-cell correct">TP: -</td>
+                            <td id="cm-fn" class="cm-cell incorrect">FN: -</td>
+                        </tr>
+                        <tr>
+                            <th>Actual Negative</th>
+                            <td id="cm-fp" class="cm-cell incorrect">FP: -</td>
+                            <td id="cm-tn" class="cm-cell correct">TN: -</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <script src="/static/script.js"></script>
+</body>
+</html>
