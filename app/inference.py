@@ -1,21 +1,54 @@
 import io
 import torch
+import torch.nn as nn
 import torch.nn.functional as F
 from PIL import Image
 from torchvision import transforms
-import sys
-import os
 
-# Add parent directory to path so it can import the original model.py if pickled that way
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# ── Model Architecture ──────────────────────────────────────────
+class BrainTumorCNN(nn.Module):
+    def __init__(self, num_classes=4):
+        super(BrainTumorCNN, self).__init__()
+        self.features = nn.Sequential(
+            nn.Conv2d(in_channels=3, out_channels=32, kernel_size=3, padding=1),
+            nn.BatchNorm2d(32),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=2, stride=2),
+            nn.Dropout(0.25),
+            nn.Conv2d(32, 64, kernel_size=3, padding=1),
+            nn.BatchNorm2d(64),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(2, 2),
+            nn.Dropout(0.25),
+            nn.Conv2d(64, 128, kernel_size=3, padding=1),
+            nn.BatchNorm2d(128),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(2, 2),
+            nn.Dropout(0.25),
+            nn.Conv2d(128, 256, kernel_size=3, padding=1),
+            nn.BatchNorm2d(256),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(2, 2),
+            nn.Dropout(0.25),
+            nn.AdaptiveAvgPool2d((7, 7))
+        )
+        self.classifier = nn.Sequential(
+            nn.Linear(256 * 7 * 7, 512),
+            nn.ReLU(inplace=True),
+            nn.Dropout(0.5),
+            nn.Linear(512, num_classes)
+        )
 
-# Output class names in order
+    def forward(self, x):
+        x = self.features(x)
+        x = x.view(x.size(0), -1)
+        x = self.classifier(x)
+        return x
+# ───────────────────────────────────────────────────────────────
+
 CLASS_NAMES = ["glioma", "meningioma", "no_tumor", "pituitary"]
-
-# Input image size
 IMG_SIZE = 224
 
-# Preprocessing pipeline
 preprocess = transforms.Compose([
     transforms.Resize((IMG_SIZE, IMG_SIZE)),
     transforms.ToTensor(),
@@ -23,32 +56,24 @@ preprocess = transforms.Compose([
 ])
 
 def load_model(model_path="model.pth"):
-    # Load model as specified by user requirements
-    # weights_only=False because the user might have saved the full model object
-    model = torch.load(model_path, map_location='cpu', weights_only=False)
+    model = BrainTumorCNN(num_classes=4)
+    state = torch.load(model_path, map_location='cpu', weights_only=False)
+    # Handle both full model and state_dict saves
+    if isinstance(state, dict):
+        model.load_state_dict(state)
+    else:
+        model = state
     model.eval()
     return model
 
 def predict(model, image_bytes: bytes):
-    # Convert uploaded bytes -> PIL Image -> RGB
     image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
-    
-    # Preprocess
-    input_tensor = preprocess(image)
-    input_batch = input_tensor.unsqueeze(0)  # create a mini-batch as expected by the model
-
+    input_tensor = preprocess(image).unsqueeze(0)
     with torch.no_grad():
-        outputs = model(input_batch)
-        
-    # Apply softmax to logits
+        outputs = model(input_tensor)
     probabilities = F.softmax(outputs, dim=1).squeeze().tolist()
-    
-    # Extract prediction
     predicted_idx = probabilities.index(max(probabilities))
     predicted_label = CLASS_NAMES[predicted_idx]
     confidence = probabilities[predicted_idx]
-    
-    # Format all scores
     all_scores = {CLASS_NAMES[i]: probabilities[i] for i in range(len(CLASS_NAMES))}
-    
     return predicted_label, confidence, all_scores
